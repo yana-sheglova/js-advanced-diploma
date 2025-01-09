@@ -24,6 +24,23 @@
  * */
 export function calcTileType(index, boardSize) {
   // TODO: ваш код будет тут
+  const row = Math.floor(index / boardSize);  //определение строки
+  const col = index % boardSize //определение столбца
+
+  // определение сторон 
+  const isTop = row === 0;
+  const isBottom = row === boardSize - 1;
+  const isLeft = col === 0;
+  const isRight = col === boardSize - 1;
+
+  if (isTop && isLeft) return 'top-left';
+  if (isTop && isRight) return 'top-right';
+  if (isTop) return 'top';
+  if (isBottom && isLeft) return 'bottom-left';
+  if (isBottom && isRight) return 'bottom-right';
+  if (isBottom) return 'bottom';
+  if (isLeft) return 'left';
+  if (isRight) return 'right';
   return 'center';
 }
 
