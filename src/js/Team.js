@@ -13,4 +13,26 @@
  * */
 export default class Team {
   // TODO: write your logic here
+  constructor(characters = []) {
+    this.characters = characters;
+  }
+
+  addCharacter(character) {
+    if (this.characters.includes(character)) {
+      throw new Error('Такой персонаж уже есть в команде');
+    }
+    this.characters.push(character)
+  }
+
+  addAllCharacters(...characters) {
+    characters.forEach((character) => this.characters.addCharacter(character));
+  }
+
+  removeCharacters(character) {
+    this.characters = this.characters.filter(item => item !== character);
+  }
+
+  getCharacters() {
+    return this.characters;
+  }
 }

@@ -20,5 +20,8 @@ export default class Character {
     this.health = 50;
     this.type = type;
     // TODO: выбросите исключение, если кто-то использует "new Character()"
+    if(new.target === Character) {
+      throw new Error('Базовый класс не может быть использован для создания персонажа');
+    }
   }
 }
