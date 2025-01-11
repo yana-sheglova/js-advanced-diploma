@@ -40,6 +40,10 @@ export default class GameController {
     this.charactersPositions(enemyPositions, this.enemyTeam);
 
     this.gamePlay.redrawPositions(this.positionedCharacters);
+
+    this.gamePlay.addCellEnterListener(this.onCellEnter.bind(this));
+    this.gamePlay.addCellLeaveListener(this.onCellLeave.bind(this));
+    this.gamePlay.addCellClickListener(this.onCellClick.bind(this));
   }
 
   onCellClick(index) {
@@ -48,10 +52,17 @@ export default class GameController {
 
   onCellEnter(index) {
     // TODO: react to mouse enter
+    const character = this.positionedCharacters.find(item => item.position === index);
+
+    if(character) {
+      const info = this.infoFormat(character.character);
+      this.gamePlay.showCellTooltip(info, index);
+    }
   }
 
   onCellLeave(index) {
     // TODO: react to mouse leave
+    this.gamePlay.hideCellTooltip(index);
   }
 
   getPositions() {
@@ -83,5 +94,12 @@ export default class GameController {
         this.positionedCharacters.push(new PositionedCharacter(character, position));
       }
     });
+  }
+
+  infoFormat(character) {
+    if(!character || typeof character !== 'object') {
+      return 'Недопустимое значение';
+    }
+    return `\u{1F396} ${character.level} \u{2694} ${character.attack} \u{1F6E1} ${character.defence} \u{2764} ${character.health}`;
   }
 }
