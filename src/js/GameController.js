@@ -1,5 +1,6 @@
 import themes from "./themes";
 import GamePlay from "./GamePlay";
+import GameState from "./GameState";
 import PositionedCharacter from "./PositionedCharacter";
 import Bowman from "./characters/Bowman";
 import Daemon from "./characters/Daemon";
@@ -20,6 +21,8 @@ export default class GameController {
     this.enemyTypes = [Vampire, Undead, Daemon];
     this.playerTeam = new Team();
     this.enemyTeam = new Team();
+    this.gameState = new GameState();
+    this.selectedCharacterIndex = null;
   }
 
   init() {
@@ -48,6 +51,30 @@ export default class GameController {
 
   onCellClick(index) {
     // TODO: react to click
+    const character = this.positionedCharacters.find(item => item.position === index);
+
+    if(this.gameState.isPlayerTurn) {
+      if(!character || !this.playerTypes.some(type => character.character instanceof type)) {
+        GamePlay.showError('Выберите своего персонажа');
+        return;
+      }
+
+      if(this.selectedCharacterIndex !== null) {
+        this.gamePlay.deselectCell(this.positionedCharacters[this.selectedCharacterIndex].position);
+      }
+  
+      this.gamePlay.selectCell(index);
+      this.selectedCharacterIndex = this.positionedCharacters.findIndex(item => item.position === index);
+  
+      this.gameState.isPlayerTurn = false;
+      //симуляция хода компьютера/противника
+      /*setTimeout(() => {
+        this.gamePlay.showMessage('Ход противника');
+        //this.enemyTurn();
+      }, 1500);*/
+    } else {
+      GamePlay.showError('Сейчас ход противника');
+    }
   }
 
   onCellEnter(index) {
