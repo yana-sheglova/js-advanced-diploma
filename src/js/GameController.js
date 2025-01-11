@@ -29,8 +29,12 @@ export default class GameController {
 
     this.playerTeam = generateTeam(this.playerTypes, 4, 2); //ИСПРАВИТЬ
     this.enemyTeam = generateTeam(this.enemyTypes, 4, 2); //ИСПРАВИТЬ
+    //console.log(this.playerTeam.characters);
+    //console.log(this.enemyTeam.characters);
 
     const { playerPositions, enemyPositions } = this.getPositions();
+    //console.log(playerPositions);
+    //console.log(enemyPositions);
 
     this.charactersPositions(playerPositions, this.playerTeam);
     this.charactersPositions(enemyPositions, this.enemyTeam);
@@ -72,7 +76,7 @@ export default class GameController {
 
   charactersPositions(positions, team) {
     team.characters.forEach((character) => {
-      if(positions > 0) {
+      if(positions.length > 0) {
         let positionIndex = Math.floor(Math.random() * positions.length);
         let position = positions.splice(positionIndex, 1)[0];
 
