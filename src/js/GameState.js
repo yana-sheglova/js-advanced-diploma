@@ -1,6 +1,7 @@
 export default class GameState {
   constructor() {
     this.isPlayerTurn = true;
+    this.selected = null;
   }
   static from(object) {
     // TODO: create object

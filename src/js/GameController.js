@@ -10,6 +10,7 @@ import Undead from "./characters/Undead";
 import Vampire from "./characters/Vampire";
 import Team from "./Team";
 import { generateTeam } from "./generators";
+import cursors from "./cursors";
 
 export default class GameController {
   constructor(gamePlay, stateService) {
@@ -51,44 +52,71 @@ export default class GameController {
 
   onCellClick(index) {
     // TODO: react to click
-    const character = this.positionedCharacters.find(item => item.position === index);
+    const selectedChar = this.getCharacter(index);
 
-    if(this.gameState.isPlayerTurn) {
-      if(!character || !this.playerTypes.some(type => character.character instanceof type)) {
-        GamePlay.showError('Выберите своего персонажа');
-        return;
-      }
+    if (selectedChar) {
+      const isPlayerCharacter = this.isPlayerCharacter(index);  // true, если кликнули на персонажа игрока
 
-      if(this.selectedCharacterIndex !== null) {
-        this.gamePlay.deselectCell(this.positionedCharacters[this.selectedCharacterIndex].position);
-      }
-  
-      this.gamePlay.selectCell(index);
-      this.selectedCharacterIndex = this.positionedCharacters.findIndex(item => item.position === index);
-  
-      this.gameState.isPlayerTurn = false;
-      //симуляция хода компьютера/противника
-      /*setTimeout(() => {
-        this.gamePlay.showMessage('Ход противника');
+      if (isPlayerCharacter) { 
+        this.deselectAllCells();
+        this.gamePlay.selectCell(index);
+        this.currentChar = selectedChar;
+        this.gameState.selected = index;
+      } else if (this.currentChar && this.canAttack(index)) {  //если текущ персонаж может атаковат по ячейке с индексом
+        this.deselectAllCells();
+        //this.attack(index);
+        this.currentChar = null;
         //this.enemyTurn();
-      }, 1500);*/
-    } else {
-      GamePlay.showError('Сейчас ход противника');
+      } else {
+        GamePlay.showError('Выберите своего персонажа');
+      }
+    } else if (this.currentChar && this.canMove(index)) {  //если текущ перс может перемещаться на ячейку с индексом
+      this.deselectAllCells();
+      this.currentChar.position = index;
+      this.gamePlay.redrawPositions(this.positionedCharacters);
+      this.currentChar = null;
+      this.gameState.isPlayerTurn = false;
+      //this.enemyTurn();
     }
   }
 
   onCellEnter(index) {
     // TODO: react to mouse enter
-    const character = this.positionedCharacters.find(item => item.position === index);
+    const selectedChar = this.getCharacter(index);
 
-    if(character) {
+    if(selectedChar) {
+      this.gamePlay.setCursor(cursors.pointer);
+
       const info = this.infoFormat(character.character);
       this.gamePlay.showCellTooltip(info, index);
+    }
+
+    if (this.currentChar) {
+      if (!selectedChar && this.canMove(index)) {
+        this.gamePlay.setCursor(cursors.pointer);
+        this.gamePlay.selectCell(index, 'green');
+      } else if (selectedChar && !this.isPlayerCharacter(index)) {
+        if (this.canAttack(index)) {
+          this.gamePlay.setCursor(cursors.crosshair);
+          this.gamePlay.selectCell(index, 'red');
+        } else {
+          this.gamePlay.setCursor(cursors.notallowed);
+        }
+      } else {
+        this.gamePlay.setCursor(cursors.notallowed);
+      }
     }
   }
 
   onCellLeave(index) {
     // TODO: react to mouse leave
+    this.gamePlay.cells.forEach((el) => {
+      el.classList.remove('selected-green');
+    });
+    this.gamePlay.cells.forEach((el) => {
+      el.classList.remove('selected-red');
+    });
+    this.gamePlay.setCursor(cursors.auto);
     this.gamePlay.hideCellTooltip(index);
   }
 
@@ -128,5 +156,86 @@ export default class GameController {
       return 'Недопустимое значение';
     }
     return `\u{1F396} ${character.level} \u{2694} ${character.attack} \u{1F6E1} ${character.defence} \u{2764} ${character.health}`;
+  }
+
+  deselectAllCells() {
+    this.positionedCharacters.forEach((elem) => {
+      this.gamePlay.deselectCell(elem.position);
+    });
+    this.gamePlay.cells.forEach((elem) => {
+      elem.classList.remove('selected-green', 'selected-red');
+    });
+  }
+
+  calcRange(index, character) {
+    const availableRange = [];
+    const boardSize = this.boardSize;
+    const row = Math.floor(index / boardSize);
+    const col = index % boardSize;
+
+    for (let i = 1; i <= character; i++) {
+      if (row + i < boardSize) { //вниз
+        availableRange.push(index + boardSize * i);
+      }
+      if (row - i >= 0) {  //вверх
+        availableRange.push(index - boardSize * i);
+      }
+
+      if (col - i >= 0) { //влево
+        availableRange.push(index - i);
+      }
+      if (col + i < boardSize) {  //вправо
+        availableRange.push(index + i);
+      }
+
+      if (row + i < boardSize && col - i >= 0) {  //вниз-влево
+        availableRange.push(index + (boardSize * i - i));
+      }
+      if (row + i < boardSize && col + i < boardSize) {  //вниз-вправо
+        availableRange.push(index + (boardSize * i + i));
+      }
+
+      if (row - i >= 0 && col - i >= 0) {  //вверх-влево
+        availableRange.push(index - (boardSize * i + i));
+      }
+      if (row - i >= 0 && col + i < boardSize) {  //вверх-вправо
+        availableRange.push(index - (boardSize * i - i));
+      }
+    };
+    return availableRange;
+  }
+
+  canMove(index) {
+    if(this.currentChar) {
+      const movements = this.currentChar.character.movement;
+      const rangeArr = this.calcRange(this.currentChar.position, movements);
+      return rangeArr.includes(index);
+    }
+    return false;
+  }
+
+  canAttack(index) {
+    if(this.currentChar) {
+      const attack = this.currentChar.character.attackRange;
+      const attackArr = this.calcRange(this.currentChar.position, attack);
+      return attackArr.includes(index);
+    }
+    return false;
+  }
+
+  getCharacter(index) {
+    return this.positionedCharacters.find(
+      item => item.position === index
+    );
+  }
+
+  isPlayerCharacter(index) {
+    if(this.getCharacter(index)) {
+      const itemCharacter = this.getCharacter(index).character;
+      return this.playerTypes.some(
+        (elem) => itemCharacter instanceof elem
+      );
+    }
+    return false;
   }
 }
