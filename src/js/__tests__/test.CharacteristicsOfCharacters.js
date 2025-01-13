@@ -13,6 +13,8 @@ describe('Bowman class', () => {
             attack: 25,
             defence: 25,
             health: 50,
+            movement: 2,
+            attackRange: 2,
             type: 'bowman'
         };
 
@@ -28,6 +30,8 @@ describe('Daemon class', () => {
             attack: 10,
             defence: 10,
             health: 50,
+            movement: 1,
+            attackRange: 4,
             type: 'daemon'
         };
 
@@ -43,6 +47,8 @@ describe('Magician class', () => {
             attack: 10,
             defence: 40,
             health: 50,
+            movement: 1,
+            attackRange: 4,
             type: 'magician'
         };
 
@@ -58,6 +64,8 @@ describe('Swordsman class', () => {
             attack: 40,
             defence: 10,
             health: 50,
+            movement: 4,
+            attackRange: 1,
             type: 'swordsman'
         };
 
@@ -73,6 +81,8 @@ describe('Undead class', () => {
             attack: 40,
             defence: 10,
             health: 50,
+            movement: 4,
+            attackRange: 1,
             type: 'undead'
         };
 
@@ -88,6 +98,8 @@ describe('Vampire class', () => {
             attack: 25,
             defence: 25,
             health: 50,
+            movement: 2,
+            attackRange: 2,
             type: 'vampire'
         };
 

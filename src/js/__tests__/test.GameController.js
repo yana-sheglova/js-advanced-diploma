@@ -1,5 +1,12 @@
 import GameController from "../GameController";
 import GamePlay from "../GamePlay";
+import PositionedCharacter from "../PositionedCharacter";
+import Bowman from "../characters/Bowman";
+import Daemon from "../characters/Daemon";
+import Magician from "../characters/Magician";
+import Swordsman from "../characters/Swordsman";
+import Undead from "../characters/Undead";
+import Vampire from "../characters/Vampire";
 
 describe('GameController.infoFormat', () => {
     let gameController;
@@ -26,5 +33,149 @@ describe('GameController.infoFormat', () => {
         const result = gameController.infoFormat("string");
 
         expect(result).toBe('Недопустимое значение');
+    });
+});
+
+describe('Bowman/s movements and attacks', () => {
+    let gameController;
+    let character = new Bowman(1);
+    beforeEach(() => {
+        const gamePlay = new GamePlay();
+        const stateService = {};
+        gameController = new GameController(gamePlay, stateService);
+        gameController.positionedCharacters.push(
+            new PositionedCharacter(character, 0)
+        );
+        gameController.currentChar = gameController.positionedCharacters[0];
+    });
+
+    test('movement', () => {
+        const canMove = gameController.canMove(3);
+        expect(canMove).toBe(false);
+    });
+
+    test('attack', () => {
+        const canAttack = gameController.canAttack(3);
+        expect(canAttack).toBe(false);
+    });
+});
+
+describe('Daemon/s movements and attacks', () => {
+    let gameController;
+    let character = new Daemon(1);
+    beforeEach(() => {
+        const gamePlay = new GamePlay();
+        const stateService = {};
+        gameController = new GameController(gamePlay, stateService);
+        gameController.positionedCharacters.push(
+            new PositionedCharacter(character, 0)
+        );
+        gameController.currentChar = gameController.positionedCharacters[0];
+    });
+
+    test('movement', () => {
+        const canMove = gameController.canMove(3);
+        expect(canMove).toBe(false);
+    });
+
+    test('attack', () => {
+        const canAttack = gameController.canAttack(6);
+        expect(canAttack).toBe(false);
+    });
+});
+
+describe('Magician/s movements and attacks', () => {
+    let gameController;
+    let character = new Magician(1);
+    beforeEach(() => {
+        const gamePlay = new GamePlay();
+        const stateService = {};
+        gameController = new GameController(gamePlay, stateService);
+        gameController.positionedCharacters.push(
+            new PositionedCharacter(character, 0)
+        );
+        gameController.currentChar = gameController.positionedCharacters[0];
+    });
+
+    test('movement', () => {
+        const canMove = gameController.canMove(3);
+        expect(canMove).toBe(false);
+    });
+
+    test('attack', () => {
+        const canAttack = gameController.canAttack(6);
+        expect(canAttack).toBe(false);
+    });
+});
+
+describe('Swordsman/s movements and attacks', () => {
+    let gameController;
+    let character = new Swordsman(1);
+    beforeEach(() => {
+        const gamePlay = new GamePlay();
+        const stateService = {};
+        gameController = new GameController(gamePlay, stateService);
+        gameController.positionedCharacters.push(
+            new PositionedCharacter(character, 0)
+        );
+        gameController.currentChar = gameController.positionedCharacters[0];
+    });
+
+    test('movement', () => {
+        const canMove = gameController.canMove(3);
+        expect(canMove).toBe(true);
+    });
+
+    test('attack', () => {
+        const canAttack = gameController.canAttack(1);
+        expect(canAttack).toBe(true);
+    });
+});
+
+describe('Undead/s movements and attacks', () => {
+    let gameController;
+    let character = new Undead(1);
+    beforeEach(() => {
+        const gamePlay = new GamePlay();
+        const stateService = {};
+        gameController = new GameController(gamePlay, stateService);
+        gameController.positionedCharacters.push(
+            new PositionedCharacter(character, 0)
+        );
+        gameController.currentChar = gameController.positionedCharacters[0];
+    });
+
+    test('movement', () => {
+        const canMove = gameController.canMove(3);
+        expect(canMove).toBe(true);
+    });
+
+    test('attack', () => {
+        const canAttack = gameController.canAttack(1);
+        expect(canAttack).toBe(true);
+    });
+});
+
+describe('Vampire/s movements and attacks', () => {
+    let gameController;
+    let character = new Vampire(1);
+    beforeEach(() => {
+        const gamePlay = new GamePlay();
+        const stateService = {};
+        gameController = new GameController(gamePlay, stateService);
+        gameController.positionedCharacters.push(
+            new PositionedCharacter(character, 0)
+        );
+        gameController.currentChar = gameController.positionedCharacters[0];
+    });
+
+    test('movement', () => {
+        const canMove = gameController.canMove(2);
+        expect(canMove).toBe(true);
+    });
+
+    test('attack', () => {
+        const canAttack = gameController.canAttack(2);
+        expect(canAttack).toBe(true);
     });
 });
