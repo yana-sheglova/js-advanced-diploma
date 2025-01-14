@@ -64,7 +64,7 @@ export default class GameController {
         this.gameState.selected = index;
       } else if (this.currentChar && this.canAttack(index)) {  //если текущ персонаж может атаковат по ячейке с индексом
         this.deselectAllCells();
-        //this.attack(index);
+        this.attack(index);
         this.currentChar = null;
         //this.enemyTurn();
       } else {
@@ -237,5 +237,22 @@ export default class GameController {
       );
     }
     return false;
+  }
+
+  async attack(index) {
+    if (this.gamePlay.isPlayerTurn) {
+      const attacker = this.currentChar.character;
+      const target = this.getCharacter(index).character;
+      const damage = Math.max(attacker.attack - target.defence, attacker.attack * 0.1);
+
+      await this.gamePlay.showDamage(index, damage);
+      target.health -= damage;
+
+      //часть 9
+
+      this.gamePlay.redrawPositions(this.positionedCharacters);
+      this.gamePlay.isPlayerTurn = false;
+      //this.enemyTurn();
+    }
   }
 }
