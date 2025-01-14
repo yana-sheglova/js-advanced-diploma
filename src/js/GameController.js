@@ -23,7 +23,6 @@ export default class GameController {
     this.playerTeam = new Team();
     this.enemyTeam = new Team();
     this.gameState = new GameState();
-    this.selectedCharacterIndex = null;
   }
 
   init() {
@@ -249,10 +248,54 @@ export default class GameController {
       target.health -= damage;
 
       //часть 9
+      //
+      //
 
       this.gamePlay.redrawPositions(this.positionedCharacters);
       this.gamePlay.isPlayerTurn = false;
-      //this.enemyTurn();
+      await this.enemyTurn();
     }
+  }
+
+  async enemyTurn() {
+    if (this.gameState.isPlayerTurn) return;
+
+    const targets = this.positionedCharacters.filter(char => 
+      this.isPlayerCharacter(char.position) && char.characters.health > 0
+    );  //доступные цели
+
+    if (targets.length === 0) return;
+
+    const attacker = this.enemyTeam.characters[0]; //для атаки берем 1го из команды врага
+
+    // Находим самого слабого персонажа игрока
+    const target = targets.reduce((weakest, char) => {
+      return (weakest.character.health < char.character.health) ? weakest : char;
+    });
+    const targetIndex = target.position;
+
+    if (this.canAttack(targetIndex)) {
+      const damage = Math.max(attacker.attack - target.defence, attacker.attack * 0.1);
+      await this.gamePlay.showDamage(target.position, damage);
+      target.character.health -= damage;
+
+      // Проверка на смерть персонажа
+      //
+      //
+
+      this.gamePlay.redrawPositions(this.positionedCharacters);
+    } else {
+      const availableMoves = this.calcRange(attacker.position, attacker.movement);
+
+      if (availableMoves.length > 0) {
+        const randomIndex = Math.floor(Math.random() * availableMoves.length);
+        const newPosition = availableMoves[randomIndex];
+        attacker.position = newPosition;
+
+        this.gamePlay.redrawPositions(this.positionedCharacters);
+      }
+    }
+    
+    this.gamePlay.isPlayerTurn = true;
   }
 }
