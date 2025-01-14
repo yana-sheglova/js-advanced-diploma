@@ -25,10 +25,13 @@ export default class Team {
   }
 
   addAllCharacters(...characters) {
-    characters.forEach((character) => this.characters.addCharacter(character));
+    characters.forEach((character) => this.addCharacter(character));
   }
 
   removeCharacters(character) {
+    if (!this.characters.includes(character)) {
+      throw new Error('Персонаж не найден в команде');
+    }
     this.characters = this.characters.filter(item => item !== character);
   }
 

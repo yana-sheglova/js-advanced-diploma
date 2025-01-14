@@ -23,12 +23,14 @@ export default class GameController {
     this.playerTeam = new Team();
     this.enemyTeam = new Team();
     this.gameState = new GameState();
+    this.currentChar = null;
+    this.themes = Object.keys(themes);
   }
 
   init() {
     // TODO: add event listeners to gamePlay events
     // TODO: load saved stated from stateService
-    this.gamePlay.drawUi(themes.prairie);
+    this.gamePlay.drawUi(this.themes[this.gameState.level - 1]);
 
     this.playerTeam = generateTeam(this.playerTypes, 4, 2); //ИСПРАВИТЬ
     this.enemyTeam = generateTeam(this.enemyTypes, 4, 2); //ИСПРАВИТЬ
@@ -65,7 +67,7 @@ export default class GameController {
         this.deselectAllCells();
         this.attack(index);
         this.currentChar = null;
-        //this.enemyTurn();
+        this.enemyTurn();
       } else {
         GamePlay.showError('Выберите своего персонажа');
       }
@@ -75,7 +77,7 @@ export default class GameController {
       this.gamePlay.redrawPositions(this.positionedCharacters);
       this.currentChar = null;
       this.gameState.isPlayerTurn = false;
-      //this.enemyTurn();
+      this.enemyTurn();
     }
   }
 
@@ -86,7 +88,7 @@ export default class GameController {
     if(selectedChar) {
       this.gamePlay.setCursor(cursors.pointer);
 
-      const info = this.infoFormat(character.character);
+      const info = this.infoFormat(selectedChar.character);
       this.gamePlay.showCellTooltip(info, index);
     }
 
@@ -166,13 +168,13 @@ export default class GameController {
     });
   }
 
-  calcRange(index, character) {
+  calcRange(index, characterRange) {
     const availableRange = [];
     const boardSize = this.boardSize;
     const row = Math.floor(index / boardSize);
     const col = index % boardSize;
 
-    for (let i = 1; i <= character; i++) {
+    for (let i = 1; i <= characterRange; i++) {
       if (row + i < boardSize) { //вниз
         availableRange.push(index + boardSize * i);
       }
@@ -229,17 +231,17 @@ export default class GameController {
   }
 
   isPlayerCharacter(index) {
-    if(this.getCharacter(index)) {
-      const itemCharacter = this.getCharacter(index).character;
+    const itemCharacter = this.getCharacter(index);
+    if (itemCharacter) {
       return this.playerTypes.some(
-        (elem) => itemCharacter instanceof elem
+        elem => itemCharacter.character instanceof elem
       );
     }
     return false;
   }
 
   async attack(index) {
-    if (this.gamePlay.isPlayerTurn) {
+    if (this.currentChar) {
       const attacker = this.currentChar.character;
       const target = this.getCharacter(index).character;
       const damage = Math.max(attacker.attack - target.defence, attacker.attack * 0.1);
@@ -247,8 +249,15 @@ export default class GameController {
       await this.gamePlay.showDamage(index, damage);
       target.health -= damage;
 
-      //часть 9
+      if (target.health <= 0) {
+        this.positionedCharacters.splice(
+          this.positionedCharacters.indexOf(this.getCharacter(index)),
+          1
+        );
+        this.enemyTeam.removeCharacters(target);
+      }
       //
+      // проверка победы
       //
 
       this.gamePlay.redrawPositions(this.positionedCharacters);
@@ -261,7 +270,7 @@ export default class GameController {
     if (this.gameState.isPlayerTurn) return;
 
     const targets = this.positionedCharacters.filter(char => 
-      this.isPlayerCharacter(char.position) && char.characters.health > 0
+      this.isPlayerCharacter(char.position) && char.character.health > 0
     );  //доступные цели
 
     if (targets.length === 0) return;
@@ -276,10 +285,17 @@ export default class GameController {
 
     if (this.canAttack(targetIndex)) {
       const damage = Math.max(attacker.attack - target.defence, attacker.attack * 0.1);
-      await this.gamePlay.showDamage(target.position, damage);
+      await this.gamePlay.showDamage(targetIndex, damage);
       target.character.health -= damage;
 
-      // Проверка на смерть персонажа
+      if (target.character.health <= 0) {
+        this.positionedCharacters.splice(
+          this.positionedCharacters.indexOf(this.getCharacter(targetIndex)),
+          1
+        );
+        this.playerTeam.removeCharacters(target);
+      }
+
       //
       //
 
@@ -295,7 +311,7 @@ export default class GameController {
         this.gamePlay.redrawPositions(this.positionedCharacters);
       }
     }
-    
+
     this.gamePlay.isPlayerTurn = true;
   }
 }
