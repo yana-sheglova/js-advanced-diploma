@@ -32,8 +32,8 @@ export default class GameController {
     // TODO: load saved stated from stateService
     this.gamePlay.drawUi(this.themes[this.gameState.level - 1]);
 
-    this.playerTeam = generateTeam(this.playerTypes, 4, 2); //ИСПРАВИТЬ
-    this.enemyTeam = generateTeam(this.enemyTypes, 4, 2); //ИСПРАВИТЬ
+    this.playerTeam = generateTeam(this.playerTypes, this.gameState.level, 2); 
+    this.enemyTeam = generateTeam(this.enemyTypes, this.gameState.level, 2); 
     //console.log(this.playerTeam.characters);
     //console.log(this.enemyTeam.characters);
 
@@ -49,6 +49,10 @@ export default class GameController {
     this.gamePlay.addCellEnterListener(this.onCellEnter.bind(this));
     this.gamePlay.addCellLeaveListener(this.onCellLeave.bind(this));
     this.gamePlay.addCellClickListener(this.onCellClick.bind(this));
+
+    this.gamePlay.addNewGameListener(this.onNewGameClick.bind(this));
+    this.gamePlay.addSaveGameListener(this.onSaveGameClick.bind(this));
+    this.gamePlay.addLoadGameListener(this.onLoadGameClick.bind(this));
   }
 
   onCellClick(index) {
@@ -256,9 +260,16 @@ export default class GameController {
         );
         this.enemyTeam.removeCharacters(target);
       }
-      //
-      // проверка победы
-      //
+      
+      if (this.enemyTeam.characters.size === 0) {
+        if (this.gameState.level === 4) {
+          this.gameOver();
+          GamePlay.showMessage(`Вы победили! Количество очков: ${this.gameState.score}`);
+        } else {
+          this.getResult();
+          this.getLevelUp();
+        }
+      }
 
       this.gamePlay.redrawPositions(this.positionedCharacters);
       this.gamePlay.isPlayerTurn = false;
@@ -296,8 +307,10 @@ export default class GameController {
         this.playerTeam.removeCharacters(target);
       }
 
-      //
-      //
+      if (this.playerTeam.characters.size === 0) {
+        this.gameOver();
+        GamePlay.showMessage('Вы проиграли');
+      }
 
       this.gamePlay.redrawPositions(this.positionedCharacters);
     } else {
@@ -313,5 +326,58 @@ export default class GameController {
     }
 
     this.gamePlay.isPlayerTurn = true;
+    this.getResult();
   }
+
+  nextLevel() {
+    for (const character of this.playerTeam.characters) {
+      character.levelUp();
+    }
+  }
+
+  onNewGameClick() {
+    this.gameState.isGameOver = false;
+    this.gameState.level = 1;
+    this.gameState.score = 0;
+    this.gamePlay.drawUi(this.themes[this.gameState.level - 1]);
+    const { playerPositions, enemyPositions } = this.getPositions();
+    this.playerTeam = generateTeam(this.playerTypes, this.gameState.level, 2); 
+    this.enemyTeam = generateTeam(this.enemyTypes, this.gameState.level, 2);
+    this.positionedCharacters = [];
+    this.charactersPositions(playerPositions, this.playerTeam);
+    this.charactersPositions(enemyPositions, this.enemyTeam);
+    this.gamePlay.redrawPositions(this.positionedCharacters);
+  }
+
+  onSaveGameClick() {
+    this.gameState.allPositions = this.positionedCharacters.map(
+      (positionedChar) => ({
+        character: {
+          type: positionedChar.character.constructor.name.toLowerCase(),
+          level: positionedChar.character.level,
+          health: positionedChar.character.health,
+        },
+        position: positionedChar.position,
+      })
+    );
+    this.stateService.save(GameState.from(this.gameState));
+    GamePlay.showMessage('Игра сохранена');
+  }
+
+  onLoadGameClick() {}
+
+  gameOver() {
+    this.gameState.isGameOver = true;
+    this.gamePlay.setCursor(cursors.auto);
+  }
+
+  getScore() {
+    this.gameState.score += this.playerTeam
+      .toArray()
+      .reduce((a, b) => a + b.health, 0);
+  }
+
+  getResult() {}
+
+  getLevelUp() {}
 }
