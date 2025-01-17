@@ -24,16 +24,17 @@ export default class GameController {
     this.enemyTeam = new Team();
     this.gameState = new GameState();
     this.currentChar = null;
-    this.themes = Object.keys(themes);
+    this.currentLevel = this.gameState.level;
   }
 
   init() {
     // TODO: add event listeners to gamePlay events
     // TODO: load saved stated from stateService
-    this.gamePlay.drawUi(this.themes[this.gameState.level - 1]);
 
-    this.playerTeam = generateTeam(this.playerTypes, this.gameState.level, 2); 
-    this.enemyTeam = generateTeam(this.enemyTypes, this.gameState.level, 2); 
+    this.gamePlay.drawUi(this.getThemeByLevel(this.currentLevel));
+
+    this.playerTeam = generateTeam(this.playerTypes, this.gameState.level, this.gameState.level + 1); 
+    this.enemyTeam = generateTeam(this.enemyTypes, this.gameState.level, this.gameState.level + 1); 
     //console.log(this.playerTeam.characters);
     //console.log(this.enemyTeam.characters);
 
@@ -55,14 +56,29 @@ export default class GameController {
     this.gamePlay.addLoadGameListener(this.onLoadGameClick.bind(this));
   }
 
-  onCellClick(index) {
+  getThemeByLevel(level) {
+    switch (level) {
+      case 1: 
+        return themes.prairie;
+      case 2: 
+        return themes.desert;
+      case 3: 
+        return themes.arctic;
+      case 4: 
+        return themes.mountain;
+      default:
+        return themes.prairie;
+    }
+  }
+
+  onCellClick(index) { 
     // TODO: react to click
+    if (this.gameState.isGameOver) return;
+
     const selectedChar = this.getCharacter(index);
 
     if (selectedChar) {
-      const isPlayerCharacter = this.isPlayerCharacter(index);  // true, если кликнули на персонажа игрока
-
-      if (isPlayerCharacter) { 
+      if (this.isPlayerCharacter(index)) { 
         this.deselectAllCells();
         this.gamePlay.selectCell(index);
         this.currentChar = selectedChar;
@@ -87,7 +103,10 @@ export default class GameController {
 
   onCellEnter(index) {
     // TODO: react to mouse enter
+    if (this.gameState.isGameOver) return;
+
     const selectedChar = this.getCharacter(index);
+    //console.log(selectedChar);
 
     if(selectedChar) {
       this.gamePlay.setCursor(cursors.pointer);
@@ -107,7 +126,7 @@ export default class GameController {
         } else {
           this.gamePlay.setCursor(cursors.notallowed);
         }
-      } else {
+      } else if (!this.isPlayerCharacter(index)) {
         this.gamePlay.setCursor(cursors.notallowed);
       }
     }
@@ -115,6 +134,8 @@ export default class GameController {
 
   onCellLeave(index) {
     // TODO: react to mouse leave
+    if (this.gameState.isGameOver) return;
+
     this.gamePlay.cells.forEach((el) => {
       el.classList.remove('selected-green');
     });
@@ -173,6 +194,7 @@ export default class GameController {
   }
 
   calcRange(index, characterRange) {
+    //characterRange=character.movement / characterRange=character.attackRange
     const availableRange = [];
     const boardSize = this.boardSize;
     const row = Math.floor(index / boardSize);
@@ -235,20 +257,27 @@ export default class GameController {
   }
 
   isPlayerCharacter(index) {
-    const itemCharacter = this.getCharacter(index);
-    if (itemCharacter) {
-      return this.playerTypes.some(
-        elem => itemCharacter.character instanceof elem
-      );
+    if (this.getCharacter(index)) {
+      const char = this.getCharacter(index).character;
+      return this.playerTypes.some((elem) => char instanceof elem)
     }
     return false;
   }
 
-  async attack(index) {
-    if (this.currentChar) {
+  async attack(index) {  //+-OK
+    console.log("Атака персонажа на ячейку:", index);
+
+    if (this.gameState.isPlayerTurn) {
       const attacker = this.currentChar.character;
       const target = this.getCharacter(index).character;
       const damage = Math.max(attacker.attack - target.defence, attacker.attack * 0.1);
+
+      if (!target) {
+        console.error("Целевой персонаж не найден");
+        return;
+      }
+
+      console.log("Атакующий персонаж:", attacker);
 
       await this.gamePlay.showDamage(index, damage);
       target.health -= damage;
@@ -259,59 +288,75 @@ export default class GameController {
           1
         );
         this.enemyTeam.removeCharacters(target);
+        console.log(`Персонаж ${target.name} убит`);
       }
 
       this.getResult();
 
       this.gamePlay.redrawPositions(this.positionedCharacters);
       this.gamePlay.isPlayerTurn = false;
-      await this.enemyTurn();
+      this.enemyTurn();
     }
   }
 
-  async enemyTurn() {
+  async enemyTurn() {  //+-OK
     if (this.gameState.isPlayerTurn) return;
 
-    const targets = this.positionedCharacters.filter(char => 
-      this.isPlayerCharacter(char.position) && char.character.health > 0
-    );  //доступные цели
+    const playerTeam = this.positionedCharacters.filter((elem) => 
+      this.playerTypes.some((type) => elem.character instanceof type)
+    );
+    const enemyTeam = this.positionedCharacters.filter((elem) => 
+      this.enemyTypes.some((type) => elem.character instanceof type)
+    );
 
-    if (targets.length === 0) return;
+    if (playerTeam.length === 0 || enemyTeam.length === 0) return;
 
-    const attacker = this.enemyTeam.characters[0]; //для атаки берем 1го из команды врага
+    let attacker = null;
+    let target = null;
 
-    // Находим самого слабого персонажа игрока
-    const target = targets.reduce((weakest, char) => {
-      return (weakest.character.health < char.character.health) ? weakest : char;
+    enemyTeam.forEach((enemy) => {
+      const rangeAttack = this.calcRange(enemy.position, enemy.character.attackRange);
+      playerTeam.forEach((player) => {
+        if (rangeAttack.includes(player.position)) {
+          attacker = enemy;
+          target = player;
+        }
+      });
     });
-    const targetIndex = target.position;
 
-    if (this.canAttack(targetIndex)) {
-      const damage = Math.max(attacker.attack - target.defence, attacker.attack * 0.1);
-      await this.gamePlay.showDamage(targetIndex, damage);
+    if (target) {
+      const damage = Math.max(attacker.character.attack - target.character.defence, attacker.character.attack * 0.1);
+
+      await this.gamePlay.showDamage(target.position, damage);
       target.character.health -= damage;
 
       if (target.character.health <= 0) {
         this.positionedCharacters.splice(
-          this.positionedCharacters.indexOf(this.getCharacter(targetIndex)),
+          this.positionedCharacters.indexOf(this.getCharacter(index)),
           1
         );
-        this.playerTeam.removeCharacters(target);
+        this.playerTeam.removeCharacters(target.character);
       }
+
+      this.gamePlay.redrawPositions(this.positionedCharacters);
+      this.gameState.isPlayerTurn = true;
+      this.getResult();
     } else {
-      const availableMoves = this.calcRange(attacker.position, attacker.movement);
+      attacker = enemyTeam[Math.floor(Math.random() * enemyTeam.length)];
+      const attackerRenge = this.calcRange(attacker.position, attacker.character.movement);
+      attackerRenge.forEach((elem) => {
+        this.positionedCharacters.forEach((e) => {
+          if (elem === e.position) {
+            attackerRenge.splice(attackerRenge.indexOf(e.position), 1);
+          }
+        });
+      });
+      const attackerPosition = attackerRenge[Math.floor(Math.random() * attackerRenge.length)];
+      attacker.position = attackerPosition;
 
-      if (availableMoves.length > 0) {
-        const randomIndex = Math.floor(Math.random() * availableMoves.length);
-        const newPosition = availableMoves[randomIndex];
-        attacker.position = newPosition;
-      }
+      this.gamePlay.redrawPositions(this.positionedCharacters);
+      this.gameState.isPlayerTurn = true;
     }
-
-    this.gamePlay.redrawPositions(this.positionedCharacters);
-    this.gamePlay.isPlayerTurn = true;
-    this.getResult();
-    this.gamePlay.redrawPositions(this.positionedCharacters);
   }
 
   nextLevel() {
@@ -324,7 +369,8 @@ export default class GameController {
     this.gameState.isGameOver = false;
     this.gameState.level = 1;
     this.gameState.score = 0;
-    this.gamePlay.drawUi(this.themes[this.gameState.level - 1]);
+    this.gamePlay.drawUi(this.getThemeByLevel(this.currentLevel));
+
     const { playerPositions, enemyPositions } = this.getPositions();
     this.playerTeam = generateTeam(this.playerTypes, this.gameState.level, 2); 
     this.enemyTeam = generateTeam(this.enemyTypes, this.gameState.level, 2);
@@ -349,9 +395,64 @@ export default class GameController {
     GamePlay.showMessage('Игра сохранена');
   }
 
-  onLoadGameClick() {}
+  onLoadGameClick() {
+    const load = this.stateService.load();
+    if (!load) {
+      GamePlay.showError('Ошибка загрузки');
+      return;
+    }
 
-  gameOver() {
+    this.gameState.isPlayerTurn = load.isPlayerTurn;
+    this.gameState.level = load.level;
+    this.gameState.score = load.score;
+    this.gameState.statistics = load.statistics;
+    this.gameState.selected = load.selected;
+
+    this.playerTeam = new Team();
+    this.enemyTeam = new Team();
+
+    this.positionedCharacters = [];
+
+    load.allPositions.forEach((element) => {
+      let char;
+      switch (element.character.type) {
+        case 'bowman':
+          char = new Bowman(element.character.level);
+          break;
+        case 'daemon':
+          char = new Daemon(element.character.level);
+          break;
+        case 'magician':
+          char = new Magician(element.character.level);
+          break;
+        case 'swordsman':
+          char = new Swordsman(element.character.level);
+          break;
+        case 'undead':
+          char = new Undead(element.character.level);
+          break;
+        case 'vampire':
+          char = new Vampire(element.character.level);
+          break;
+      }
+
+      char.health = element.character.health;
+
+      const positionedChar = new PositionedCharacter(char, element.position);
+      this.positionedCharacters.push(positionedChar);
+
+      if (this.playerTypes.some((type) => char instanceof type)) {
+        this.playerTeam.addAllCharacters([char]);
+      } else if (this.enemyTypes.some((type) => char instanceof type)) {
+        this.enemyTeam.addAllCharacters([char]);
+      }
+    });
+    GamePlay.showMessage('Игра загружена');
+    this.gamePlay.drawUi(this.getThemeByLevel(this.currentLevel));
+    this.gamePlay.redrawPositions(this.positionedCharacters);
+  }
+
+  gameOver() {  //+-OK
     this.gameState.isGameOver = true;
     this.gamePlay.setCursor(cursors.auto);
   }
@@ -362,9 +463,9 @@ export default class GameController {
       .reduce((a, b) => a + b.health, 0);
   }
 
-  getResult() {
+  getResult() { //+-OK
     //Проигрыш, если команда игрока пуста
-    if(this.playerTeam.characters.size === 0) {
+    if (this.playerTeam.characters.size === 0) {
       this.gameState.statistics.push(this.gameState.score);
       this.gameOver();
       GamePlay.showMessage(`Вы проиграли! Количество очков: ${this.gameState.score}.`);
@@ -372,7 +473,7 @@ export default class GameController {
     }
 
     //Победа, если уровень 4 и команда врага пуста
-    if(this.enemyTeam.characters.size === 0 && this.gameState.level === 4) {
+    if (this.enemyTeam.characters.size === 0 && this.gameState.level === 4) {
       this.getScore();
       this.gameOver();
       this.gameState.statistics.push(this.gameState.score);
@@ -381,20 +482,23 @@ export default class GameController {
     }
 
     //Переход на след. уровень, если команда врага пуста
-    if(this.enemyTeam.characters.size === 0 && this.gameState.level < 4) {
+    if (this.enemyTeam.characters.size === 0 && this.gameState.level <= 3) {
       this.gameState.isPlayerTurn = true;
       this.getScore();
+      GamePlay.showMessage('Переход на следующий уровень');
       this.gameState.level += 1;
       this.nextLevel();
-      GamePlay.showMessage('Переход на следующий уровень');
-      getLevelUp();
+      this.getLevelUp();
     }
   }
 
-  getLevelUp() {
+  getLevelUp() { //+-OK
     this.positionedCharacters = [];
-    this.gamePlay.drawUi(this.themes[this.gameState.level - 1]);
-    this.enemyTeam = generateTeam(this.enemyTypes, this.gameState.level, 2);
+
+    this.gamePlay.drawUi(this.getThemeByLevel(this.currentLevel));
+
+    this.enemyTeam = generateTeam(this.enemyTypes, this.gameState.level, this.gameState.level + 1);
+
     const { playerPositions, enemyPositions } = this.getPositions();
     this.charactersPositions(playerPositions, this.playerTeam);
     this.charactersPositions(enemyPositions, this.enemyTeam);
