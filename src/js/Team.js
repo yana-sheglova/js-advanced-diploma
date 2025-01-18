@@ -21,7 +21,7 @@ export default class Team {
     if (this.characters.includes(character)) {
       throw new Error('Такой персонаж уже есть в команде');
     }
-    this.characters.push(character)
+    this.characters.push(character);
   }
 
   addAllCharacters(...characters) {
@@ -32,7 +32,7 @@ export default class Team {
     if (!this.characters.includes(character)) {
       throw new Error('Персонаж не найден в команде');
     }
-    this.characters = this.characters.filter(item => item !== character);
+    this.characters = this.characters.filter((item) => item !== character);
   }
 
   getCharacters() {

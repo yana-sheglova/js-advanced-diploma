@@ -24,10 +24,10 @@
  * */
 export function calcTileType(index, boardSize) {
   // TODO: ваш код будет тут
-  const row = Math.floor(index / boardSize);  //определение строки
-  const col = index % boardSize //определение столбца
+  const row = Math.floor(index / boardSize); // определение строки
+  const col = index % boardSize; // определение столбца
 
-  // определение сторон 
+  // определение сторон
   const isTop = row === 0;
   const isBottom = row === boardSize - 1;
   const isLeft = col === 0;
