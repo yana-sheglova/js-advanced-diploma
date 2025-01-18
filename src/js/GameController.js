@@ -106,7 +106,6 @@ export default class GameController {
     if (this.gameState.isGameOver) return;
 
     const selectedChar = this.getCharacter(index);
-    //console.log(selectedChar);
 
     if(selectedChar) {
       this.gamePlay.setCursor(cursors.pointer);
@@ -264,7 +263,7 @@ export default class GameController {
     return false;
   }
 
-  async attack(index) {  //+-OK
+  async attack(index) {
     console.log("Атака персонажа на ячейку:", index);
 
     if (this.gameState.isPlayerTurn) {
@@ -288,7 +287,6 @@ export default class GameController {
           1
         );
         this.enemyTeam.removeCharacters(target);
-        console.log(`Персонаж ${target.name} убит`);
       }
 
       this.getResult();
@@ -297,9 +295,9 @@ export default class GameController {
       this.gamePlay.isPlayerTurn = false;
       this.enemyTurn();
     }
-  }
+  } 
 
-  async enemyTurn() {  //+-OK
+  async enemyTurn() {
     if (this.gameState.isPlayerTurn) return;
 
     const playerTeam = this.positionedCharacters.filter((elem) => 
@@ -452,20 +450,20 @@ export default class GameController {
     this.gamePlay.redrawPositions(this.positionedCharacters);
   }
 
-  gameOver() {  //+-OK
+  gameOver() {
     this.gameState.isGameOver = true;
     this.gamePlay.setCursor(cursors.auto);
   }
 
   getScore() {
     this.gameState.score += this.playerTeam
-      .toArray()
+      .getCharacters()
       .reduce((a, b) => a + b.health, 0);
   }
 
-  getResult() { //+-OK
+  getResult() { 
     //Проигрыш, если команда игрока пуста
-    if (this.playerTeam.characters.size === 0) {
+    if (this.playerTeam.characters.length === 0) {
       this.gameState.statistics.push(this.gameState.score);
       this.gameOver();
       GamePlay.showMessage(`Вы проиграли! Количество очков: ${this.gameState.score}.`);
@@ -473,7 +471,7 @@ export default class GameController {
     }
 
     //Победа, если уровень 4 и команда врага пуста
-    if (this.enemyTeam.characters.size === 0 && this.gameState.level === 4) {
+    if (this.enemyTeam.characters.length === 0 && this.gameState.level === 4) {
       this.getScore();
       this.gameOver();
       this.gameState.statistics.push(this.gameState.score);
@@ -482,7 +480,7 @@ export default class GameController {
     }
 
     //Переход на след. уровень, если команда врага пуста
-    if (this.enemyTeam.characters.size === 0 && this.gameState.level <= 3) {
+    if (this.enemyTeam.characters.length === 0 && this.gameState.level <= 3) {
       this.gameState.isPlayerTurn = true;
       this.getScore();
       GamePlay.showMessage('Переход на следующий уровень');
@@ -492,12 +490,13 @@ export default class GameController {
     }
   }
 
-  getLevelUp() { //+-OK
+  getLevelUp() {
     this.positionedCharacters = [];
 
     this.gamePlay.drawUi(this.getThemeByLevel(this.currentLevel));
 
     this.enemyTeam = generateTeam(this.enemyTypes, this.gameState.level, this.gameState.level + 1);
+    this.playerTeam = generateTeam(this.playerTypes, this.gameState.level, this.gameState.level + 1);
 
     const { playerPositions, enemyPositions } = this.getPositions();
     this.charactersPositions(playerPositions, this.playerTeam);
